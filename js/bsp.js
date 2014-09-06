@@ -210,19 +210,20 @@ define(['util', 'glMatrix'], function(Util, GLM){
 
       for(var i=0; i < this.header.texinfo.count; ++i) {
         var surface = {
-          vecS: GLM.vec3.fromValues(
+          index: i,
+          uAxis: GLM.vec3.fromValues(
             data.getFloat32(i*40 + 0, true),         //0-4
             data.getFloat32(i*40 + 4, true),         //4-8
             data.getFloat32(i*40 + 8, true)          //8-12
           ),
-          distS: data.getFloat32(i*40 + 12, true),   //12-16
+          uOffset: data.getFloat32(i*40 + 12, true),   //12-16
 
-          vecT: GLM.vec3.fromValues(
+          vAxis: GLM.vec3.fromValues(
             data.getFloat32(i*40 + 16, true),        //16-20
             data.getFloat32(i*40 + 20, true),        //20-24
             data.getFloat32(i*40 + 24, true)         //24-28
           ),
-          distT: data.getFloat32(i*40 + 28, true),   //28-32
+          vOffset: data.getFloat32(i*40 + 28, true),   //28-32
           animated: data.getUint32(i*40 + 36, true), //36-40
         };
 
@@ -372,14 +373,18 @@ define(['util', 'glMatrix'], function(Util, GLM){
           lightmap     : data.getInt32 (i*20 + 16, true), //16-20
         };
 
+        // Reference surface directly
+        var texinfoId = data.getUint16(i*20 + 10, true); //10-12
+        face.surface = this.surfaces[texinfoId];
+
         // Reference vertices directly
-        //TODO UV coordinates
         var edgeIndiceId = data.getInt32 (i*20 +  4, true);  // 4-8
         var edgeIndiceNum = data.getUint16(i*20 +  8, true); // 8-10
 
         var index;
         var edge;
         var vert0, vert1, vert2;
+        var uv0, uv1, uv2;
 
         if(edgeIndiceNum < 3) {
           console.error("Face %i has less than 3 edges", i);
@@ -393,6 +398,10 @@ define(['util', 'glMatrix'], function(Util, GLM){
         } else {
           vert0 = this.vertices[edge.vertexIndex0];
         }
+        uv0 = [
+              GLM.vec3.dot(vert0, face.surface.uAxis) + face.surface.uOffset,
+              GLM.vec3.dot(vert0, face.surface.vAxis) + face.surface.vOffset,
+              ];
 
         index = this.edgeIndices[edgeIndiceId + 1];
         edge = this.edges[Math.abs(index)];
@@ -401,6 +410,10 @@ define(['util', 'glMatrix'], function(Util, GLM){
         } else {
           vert1 = this.vertices[edge.vertexIndex0];
         }
+        uv1 = [
+              GLM.vec3.dot(vert1, face.surface.uAxis) + face.surface.uOffset,
+              GLM.vec3.dot(vert1, face.surface.vAxis) + face.surface.vOffset,
+              ];
 
         for(var e=2; e < edgeIndiceNum; ++e) {
           index = this.edgeIndices[edgeIndiceId + e];
@@ -410,21 +423,22 @@ define(['util', 'glMatrix'], function(Util, GLM){
           } else {
             vert2 = this.vertices[edge.vertexIndex0];
           }
+          uv2 = [
+                GLM.vec3.dot(vert2, face.surface.uAxis) + face.surface.uOffset,
+                GLM.vec3.dot(vert2, face.surface.vAxis) + face.surface.vOffset,
+                ];
 
-          face.vertices.push(vert0);
-          face.vertices.push(vert1);
-          face.vertices.push(vert2);
+          face.vertices.push({pos: vert0, uv: uv0});
+          face.vertices.push({pos: vert1, uv: uv1});
+          face.vertices.push({pos: vert2, uv: uv2});
 
           vert1 = vert2;
+          uv1 = uv2;
         }
 
         // Reference plane directly
         var planeId = data.getUint16(i*20 +  0, true); // 0-2
         face.plane = this.planes[planeId];
-
-        // Reference surface directly
-        var texinfoId = data.getUint16(i*20 + 10, true); //10-12
-        face.surface = this.surfaces[texinfoId];
 
         this.faces.push(face);
       }

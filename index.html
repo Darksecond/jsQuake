@@ -4,6 +4,39 @@
   <title>JsQuake</title>
   <script data-main="js/main.js" src="js/require.min.js"></script>
 </head>
+<style>
+#game {
+  width: 800px;
+  height: 600px;
+};
+</style>
+<script id="bsp-fs" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec2 vUv;
+
+void main(void) {
+  gl_FragColor = vec4(vUv.x, vUv.y, 1.0, 1.0);
+}
+</script>
+<script id="bsp-vs" type="x-shader/x-vertex">
+precision mediump float;
+
+attribute vec3 position;
+attribute vec2 uv;
+
+uniform mat4 viewMatrix;
+uniform mat4 perspectiveMatrix;
+
+varying vec2 vUv;
+
+void main(void) {
+  vUv = uv;
+  gl_Position = perspectiveMatrix * viewMatrix * vec4(position, 1.0);
+}
+</script>
 <body>
+  <canvas id="game">
+  </canvas>
 </body>
 </html>
