@@ -292,7 +292,8 @@ define(['util', 'glMatrix'], function(Util, GLM){
       console.log("Parsing %i edgeIndices", this.header.listEdges.count);
 
       for(var i=0; i < this.header.listEdges.count; ++i) {
-        this.edgeIndices.push( data.getInt16(i*2 + 0, true) );
+        var indice = data.getInt32(i*4 + 0, true);
+        this.edgeIndices.push( indice );
       }
     },
 
@@ -432,6 +433,9 @@ define(['util', 'glMatrix'], function(Util, GLM){
           face.vertices.push({pos: vert1, uv: uv1});
           face.vertices.push({pos: vert2, uv: uv2});
 
+          // vert0 = vert1;
+          // uv0 = uv1;
+
           vert1 = vert2;
           uv1 = uv2;
         }
@@ -446,6 +450,7 @@ define(['util', 'glMatrix'], function(Util, GLM){
 
     parseHeader: function() {
       var data = new DataView(this.raw, 0);
+      console.log("BSP: %i", this.raw.byteLength);
 
       var version = data.getInt32(0, true);
       if(version != 29) {
@@ -521,7 +526,7 @@ define(['util', 'glMatrix'], function(Util, GLM){
       this.header.edges.count = this.header.edges.length / 4;
       this.header.faces.count = this.header.faces.length / 20;
       this.header.clipNodes.count = this.header.clipNodes.length / 8;
-      this.header.listEdges.count = this.header.listEdges.length / 2;
+      this.header.listEdges.count = this.header.listEdges.length / 4;
       this.header.listFaces.count = this.header.listFaces.length / 2;
       this.header.texinfo.count = this.header.texinfo.length / 40;
       this.header.planes.count = this.header.planes.length / 20;

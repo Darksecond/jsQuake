@@ -16,7 +16,7 @@ precision mediump float;
 varying vec2 vUv;
 
 void main(void) {
-  gl_FragColor = vec4(vUv.x, vUv.y, 1.0, 1.0);
+  gl_FragColor = vec4(vUv.x, vUv.y, vUv.x*vUv.y, 1.0);
 }
 </script>
 <script id="bsp-vs" type="x-shader/x-vertex">
