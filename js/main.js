@@ -2,6 +2,16 @@ requirejs.config({
   urlArgs: new Date().getTime().toString(), // For debugging only!
 });
 
+//TODO FirstPersonControls class
+//TODO PointerLockControls class
+//TODO Camera class
+//TODO Handle context loss
+//TODO Handle resize
+//TODO update() routine
+//TODO tick() routine
+//TODO Input class
+//TODO FPS counter (https://github.com/mrdoob/stats.js/)
+//TODO Clean this up massively
 require(['pack', 'bsp', 'bspRenderer', 'glMatrix'], function(Pack, BSP, BSPRenderer, GLM){
   "use strict";
 

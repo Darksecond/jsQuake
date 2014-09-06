@@ -268,6 +268,7 @@ define(['util', 'glMatrix'], function(Util, GLM){
       }
     },
 
+    //TODO Verify thse are 16 and not 32 bits.
     parseFaceIndices: function() {
       var data = new DataView(
         this.raw,
@@ -432,9 +433,6 @@ define(['util', 'glMatrix'], function(Util, GLM){
           face.vertices.push({pos: vert0, uv: uv0});
           face.vertices.push({pos: vert1, uv: uv1});
           face.vertices.push({pos: vert2, uv: uv2});
-
-          // vert0 = vert1;
-          // uv0 = uv1;
 
           vert1 = vert2;
           uv1 = uv2;

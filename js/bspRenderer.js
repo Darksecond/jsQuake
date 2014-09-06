@@ -14,6 +14,11 @@ define(['glMatrix'], function(GLM) {
   BSPRenderer.prototype = {
     constructor: BSPRenderer,
 
+    //TODO cacheAttributes
+    //     (https://github.com/mrdoob/three.js/blob/master/src/renderers/webgl/WebGLProgram.js#L38)
+    //TODO cacheUniforms
+    //     (https://github.com/mrdoob/three.js/blob/master/src/renderers/webgl/WebGLProgram.js#L23)
+    //TODO Proper Shader & Program classes
     loadShaders: function() {
       var fsScript = document.getElementById('bsp-fs');
       var fsShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
@@ -70,6 +75,7 @@ define(['glMatrix'], function(GLM) {
         "viewMatrix");
     },
 
+    //TODO Clean this up
     loadVertices: function() {
       var vertsPerSurface = new Array(this.bsp.surfaces.length);
       var verts;
@@ -139,6 +145,7 @@ define(['glMatrix'], function(GLM) {
         this.gl.drawArrays(this.gl.TRIANGLES, 0, vbo.count);
       }
 
+      //TODO Disable this on non-debug mode
       var error = this.gl.getError ();
       if (this.gl.NO_ERROR != error) {
         console.error ("GL threw an error, code: " + error);
