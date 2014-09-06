@@ -11,6 +11,7 @@ requirejs.config({
 //TODO tick() routine
 //TODO Input class
 //TODO FPS counter (https://github.com/mrdoob/stats.js/)
+//TODO Fullscreen
 //TODO Clean this up massively
 require(['pack', 'bsp', 'bspRenderer', 'glMatrix'], function(Pack, BSP, BSPRenderer, GLM){
   "use strict";
