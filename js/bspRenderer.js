@@ -73,15 +73,21 @@ define(['glMatrix'], function(GLM) {
       this.bspProgram.uniform.viewMatrix = this.gl.getUniformLocation(
         this.bspProgram,
         "viewMatrix");
+
+      this.bspProgram.uniform.texture = this.gl.getUniformLocation(
+        this.bspProgram,
+        "texture");
     },
 
     //TODO Clean this up
+    //     Possibly by renaming this to LoadModel
     loadVertices: function() {
+      var faces = this.bsp.models[0].faces; //only the first model (level)
       var vertsPerSurface = new Array(this.bsp.surfaces.length);
       var verts;
 
-      for(var f=0; f < this.bsp.faces.length; ++f) {
-        var face = this.bsp.faces[f];
+      for(var f=0; f < faces.length; ++f) {
+        var face = faces[f];
         verts = vertsPerSurface[face.surface.index];
         if(!verts) {
           verts = [];
@@ -93,8 +99,8 @@ define(['glMatrix'], function(GLM) {
           verts.push(face.vertices[v].pos[1]);
           verts.push(face.vertices[v].pos[2]);
 
-          verts.push(face.vertices[v].uv[0] / face.surface.mipTex.width);
-          verts.push(face.vertices[v].uv[1] / face.surface.mipTex.height);
+          verts.push((face.vertices[v].uv[0] / face.surface.mipTex.width));
+          verts.push((face.vertices[v].uv[1] / face.surface.mipTex.height));
         }
       }
 
@@ -103,15 +109,43 @@ define(['glMatrix'], function(GLM) {
         verts = vertsPerSurface[i];
         if(!verts) continue;
 
+        this.gl.activeTexture(this.gl.TEXTURE0);
         var vbo = this.gl.createBuffer();
+        var texture = this.loadTexture(i);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(verts), this.gl.STATIC_DRAW);
-        this.vbos.push({vbo: vbo, count: verts.length/5});
+        this.vbos.push({vbo: vbo, count: verts.length/5, tex: texture});
       }
     },
 
-    load: function(bsp) {
+    loadTexture: function(surfaceId) {
+      var surface = this.bsp.surfaces[surfaceId];
+
+      var data = new Uint8Array(surface.mipTex.mips[0]);
+      var mip = new Uint8Array(surface.mipTex.width * surface.mipTex.height * 3);
+      for(var i=0; i < data.length; ++i) {
+        var idx = data[i];
+        mip[i*3+0] = this.palette[idx*3+0];
+        mip[i*3+1] = this.palette[idx*3+1];
+        mip[i*3+2] = this.palette[idx*3+2];
+      }
+      
+      var texture = this.gl.createTexture();
+      this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+      this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGB,
+        surface.mipTex.width, surface.mipTex.height, 0, this.gl.RGB,
+        this.gl.UNSIGNED_BYTE, mip);
+
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT);
+      return texture;
+    },
+
+    load: function(bsp, palette) {
       this.bsp = bsp;
+      this.palette = new Uint8Array(palette);
 
       this.loadVertices();
     },
@@ -142,6 +176,11 @@ define(['glMatrix'], function(GLM) {
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo.vbo);
         this.gl.vertexAttribPointer(this.bspProgram.attribute.position, 3, this.gl.FLOAT, false, 5*4, 0);
         this.gl.vertexAttribPointer(this.bspProgram.attribute.uv, 2, this.gl.FLOAT, false, 5*4, 3*4);
+
+        this.gl.activeTexture(this.gl.TEXTURE0);
+			  this.gl.bindTexture(this.gl.TEXTURE_2D, vbo.tex);
+			  this.gl.uniform1i(this.bspProgram.uniform.texture, 0);
+
         this.gl.drawArrays(this.gl.TRIANGLES, 0, vbo.count);
       }
 

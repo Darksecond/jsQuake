@@ -28,6 +28,7 @@ require(['pack', 'bsp', 'bspRenderer', 'glMatrix'], function(Pack, BSP, BSPRende
   canvas.height = canvas.clientHeight * devicePixelRatio;
 
   var gl = canvas.getContext("experimental-webgl");
+  // var gl = WebGLDebugUtils.makeDebugContext(canvas.getContext("experimental-webgl"));
   if(!gl) {
     console.error("Error initializing WebGL");
     return;
@@ -144,11 +145,13 @@ require(['pack', 'bsp', 'bspRenderer', 'glMatrix'], function(Pack, BSP, BSPRende
   pack.load(function(){
     //onLoad
     pack.loadEntry("maps/e1m1.bsp", function(raw){
-      var bsp = new BSP(raw);
-      console.log(bsp);
+      pack.loadEntry("gfx/palette.lmp", function(palette) {
+        var bsp = new BSP(raw);
+        console.log(bsp);
 
-      bspRenderer.load(bsp);
-      render();
+        bspRenderer.load(bsp, palette);
+        render();
+      });
     });
   },function(){
     //onError

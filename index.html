@@ -3,20 +3,22 @@
 <head>
   <title>JsQuake</title>
   <script data-main="js/main.js" src="js/require.min.js"></script>
-</head>
 <style>
 #game {
   width: 800px;
   height: 600px;
 };
 </style>
+<!-- <script src="js/webgl-debug.js"></script> -->
 <script id="bsp-fs" type="x-shader/x-fragment">
 precision mediump float;
+
+uniform sampler2D texture;
 
 varying vec2 vUv;
 
 void main(void) {
-  gl_FragColor = vec4(vUv.x, vUv.y, vUv.x*vUv.y, 1.0);
+  gl_FragColor = texture2D(texture, vUv.xy);
 }
 </script>
 <script id="bsp-vs" type="x-shader/x-vertex">
@@ -35,6 +37,7 @@ void main(void) {
   gl_Position = perspectiveMatrix * viewMatrix * vec4(position, 1.0);
 }
 </script>
+</head>
 <body>
   <canvas id="game">
   </canvas>

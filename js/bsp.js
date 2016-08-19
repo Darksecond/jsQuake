@@ -216,14 +216,14 @@ define(['util', 'glMatrix'], function(Util, GLM){
             data.getFloat32(i*40 + 4, true),         //4-8
             data.getFloat32(i*40 + 8, true)          //8-12
           ),
-          uOffset: data.getFloat32(i*40 + 12, true),   //12-16
+          uOffset: data.getFloat32(i*40 + 12, true), //12-16
 
           vAxis: GLM.vec3.fromValues(
             data.getFloat32(i*40 + 16, true),        //16-20
             data.getFloat32(i*40 + 20, true),        //20-24
             data.getFloat32(i*40 + 24, true)         //24-28
           ),
-          vOffset: data.getFloat32(i*40 + 28, true),   //28-32
+          vOffset: data.getFloat32(i*40 + 28, true), //28-32
           animated: data.getUint32(i*40 + 36, true), //36-40
         };
 
@@ -256,11 +256,11 @@ define(['util', 'glMatrix'], function(Util, GLM){
         };
 
         for(var m=0; m < 4; ++m) {
-          var mipOffset = data.getUint32(offset + 24 + m*4, true);
+          var mipOffset = data.getInt32(offset + 24 + m*4, true);
           var mipStart = offset + mipOffset;
           // (x >> y) is the same as (x / 2^y)
           var mipEnd = mipStart + (mipTex.width >> m) * (mipTex.height >> m);
-          var mipData = this.raw.slice(mipStart, mipEnd);
+          var mipData = this.raw.slice(this.header.miptex.offset+mipStart, this.header.miptex.offset+mipEnd);
           mipTex.mips.push(mipData);
         }
 
@@ -397,24 +397,24 @@ define(['util', 'glMatrix'], function(Util, GLM){
         edge = this.edges[Math.abs(index)];
         if(index < 0) {
           vert0 = this.vertices[edge.vertexIndex1];
-        } else {
+        } else if(index > 0) {
           vert0 = this.vertices[edge.vertexIndex0];
         }
         uv0 = [
               GLM.vec3.dot(vert0, face.surface.uAxis) + face.surface.uOffset,
-              GLM.vec3.dot(vert0, face.surface.vAxis) + face.surface.vOffset,
+              -GLM.vec3.dot(vert0, face.surface.vAxis) + face.surface.vOffset,
               ];
 
         index = this.edgeIndices[edgeIndiceId + 1];
         edge = this.edges[Math.abs(index)];
         if(index < 0) {
           vert1 = this.vertices[edge.vertexIndex1];
-        } else {
+        } else if(index > 0) {
           vert1 = this.vertices[edge.vertexIndex0];
         }
         uv1 = [
               GLM.vec3.dot(vert1, face.surface.uAxis) + face.surface.uOffset,
-              GLM.vec3.dot(vert1, face.surface.vAxis) + face.surface.vOffset,
+              -GLM.vec3.dot(vert1, face.surface.vAxis) + face.surface.vOffset,
               ];
 
         for(var e=2; e < edgeIndiceNum; ++e) {
@@ -422,17 +422,19 @@ define(['util', 'glMatrix'], function(Util, GLM){
           edge = this.edges[Math.abs(index)];
           if(index < 0) {
             vert2 = this.vertices[edge.vertexIndex1];
-          } else {
+          } else if(index > 0) {
             vert2 = this.vertices[edge.vertexIndex0];
           }
           uv2 = [
                 GLM.vec3.dot(vert2, face.surface.uAxis) + face.surface.uOffset,
-                GLM.vec3.dot(vert2, face.surface.vAxis) + face.surface.vOffset,
+                -GLM.vec3.dot(vert2, face.surface.vAxis) + face.surface.vOffset,
                 ];
 
           face.vertices.push({pos: vert0, uv: uv0});
           face.vertices.push({pos: vert1, uv: uv1});
           face.vertices.push({pos: vert2, uv: uv2});
+
+          //TODO Somehow the UV coordinates are massively bigger than 0-1*{width,height}
 
           vert1 = vert2;
           uv1 = uv2;
@@ -519,6 +521,9 @@ define(['util', 'glMatrix'], function(Util, GLM){
           length: data.getInt32(120, true),
         },
       };
+
+      // var entities = Util.dataViewToString(data, data.getInt32(4, true), data.getInt32(8, true));
+      // console.log(entities);
 
       this.header.vertices.count = this.header.vertices.length / 12;
       this.header.edges.count = this.header.edges.length / 4;
