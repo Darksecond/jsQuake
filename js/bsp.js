@@ -402,7 +402,7 @@ define(['util', 'glMatrix'], function(Util, GLM){
         }
         uv0 = [
               GLM.vec3.dot(vert0, face.surface.uAxis) + face.surface.uOffset,
-              -GLM.vec3.dot(vert0, face.surface.vAxis) + face.surface.vOffset,
+              GLM.vec3.dot(vert0, face.surface.vAxis) + face.surface.vOffset,
               ];
 
         index = this.edgeIndices[edgeIndiceId + 1];
@@ -414,7 +414,7 @@ define(['util', 'glMatrix'], function(Util, GLM){
         }
         uv1 = [
               GLM.vec3.dot(vert1, face.surface.uAxis) + face.surface.uOffset,
-              -GLM.vec3.dot(vert1, face.surface.vAxis) + face.surface.vOffset,
+              GLM.vec3.dot(vert1, face.surface.vAxis) + face.surface.vOffset,
               ];
 
         for(var e=2; e < edgeIndiceNum; ++e) {
@@ -427,7 +427,7 @@ define(['util', 'glMatrix'], function(Util, GLM){
           }
           uv2 = [
                 GLM.vec3.dot(vert2, face.surface.uAxis) + face.surface.uOffset,
-                -GLM.vec3.dot(vert2, face.surface.vAxis) + face.surface.vOffset,
+                GLM.vec3.dot(vert2, face.surface.vAxis) + face.surface.vOffset,
                 ];
 
           face.vertices.push({pos: vert0, uv: uv0});
