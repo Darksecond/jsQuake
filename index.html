@@ -15,10 +15,13 @@ precision mediump float;
 
 uniform sampler2D texture;
 
+uniform vec2 texSize;
+uniform vec2 texOffset;
+
 varying vec2 vUv;
 
 void main(void) {
-  gl_FragColor = texture2D(texture, vUv.xy);
+  gl_FragColor = texture2D(texture, texOffset + texSize * abs(fract(vUv.xy)));
 }
 </script>
 <script id="bsp-vs" type="x-shader/x-vertex">
