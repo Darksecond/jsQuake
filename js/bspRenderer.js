@@ -7,6 +7,7 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
     }
 
     this.gl = gl;
+    this.loadedTextures = {};
 
     this.loadShaders();
   }
@@ -66,6 +67,10 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
         this.bspProgram,
         "uv");
 
+      this.bspProgram.attribute.texInfo = this.gl.getAttribLocation(
+        this.bspProgram,
+        "texInfo");
+
       this.bspProgram.uniform.perspectiveMatrix = this.gl.getUniformLocation(
         this.bspProgram,
         "perspectiveMatrix");
@@ -77,67 +82,62 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
       this.bspProgram.uniform.texture = this.gl.getUniformLocation(
         this.bspProgram,
         "texture");
-
-      this.bspProgram.uniform.texSize = this.gl.getUniformLocation(
-        this.bspProgram,
-        "texSize");
-      this.bspProgram.uniform.texOffset = this.gl.getUniformLocation(
-        this.bspProgram,
-        "texOffset");
     },
 
     //TODO Clean this up
     //     Possibly by renaming this to LoadModel
     loadVertices: function() {
+      this.gl.activeTexture(this.gl.TEXTURE0);
+
       var faces = this.bsp.models[0].faces; //only the first model (level)
-      var vertsPerSurface = new Array(this.bsp.surfaces.length);
-      var verts;
+      var verts = [];
 
       for(var f=0; f < faces.length; ++f) {
         var face = faces[f];
-        verts = vertsPerSurface[face.surface.index];
-        if(!verts) {
-          verts = [];
-          vertsPerSurface[face.surface.index] = verts;
-        }
-
+        var texture = this.loadTexture(face.surface.index);
         for(var v=0; v < face.vertices.length; ++v) {
+
           verts.push(face.vertices[v].pos[0]);
           verts.push(face.vertices[v].pos[1]);
           verts.push(face.vertices[v].pos[2]);
 
           verts.push((face.vertices[v].uv[0] / face.surface.mipTex.width));
           verts.push((face.vertices[v].uv[1] / face.surface.mipTex.height));
+
+          verts.push(texture.xy[0]);
+          verts.push(texture.xy[1]);
+          verts.push(texture.size[0]);
+          verts.push(texture.size[1]);
         }
       }
 
       this.vbos = [];
-      for(var i=0; i < vertsPerSurface.length; ++i) {
-        verts = vertsPerSurface[i];
-        if(!verts) continue;
-
-        this.gl.activeTexture(this.gl.TEXTURE0);
-        var vbo = this.gl.createBuffer();
-        var texture = this.loadTexture(i);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(verts), this.gl.STATIC_DRAW);
-        this.vbos.push({vbo: vbo, count: verts.length/5, tex: texture});
-      }
+      this.gl.activeTexture(this.gl.TEXTURE0);
+      var vbo = this.gl.createBuffer();
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(verts), this.gl.STATIC_DRAW);
+      this.vbos.push({vbo: vbo, count: verts.length/9, tex: texture});
     },
 
     loadTexture: function(surfaceId) {
       var surface = this.bsp.surfaces[surfaceId];
+      let rect;
+      if(this.loadedTextures[surface.mipTex.name]) {
+        rect = this.loadedTextures[surface.mipTex.name];
+      } else {
 
-      var data = new Uint8Array(surface.mipTex.mips[0]);
-      var mip = new Uint8Array(surface.mipTex.width * surface.mipTex.height * 3);
-      for(var i=0; i < data.length; ++i) {
-        var idx = data[i];
-        mip[i*3+0] = this.palette[idx*3+0];
-        mip[i*3+1] = this.palette[idx*3+1];
-        mip[i*3+2] = this.palette[idx*3+2];
+        var data = new Uint8Array(surface.mipTex.mips[0]);
+        var mip = new Uint8Array(surface.mipTex.width * surface.mipTex.height * 3);
+        for(var i=0; i < data.length; ++i) {
+          var idx = data[i];
+          mip[i*3+0] = this.palette[idx*3+0];
+          mip[i*3+1] = this.palette[idx*3+1];
+          mip[i*3+2] = this.palette[idx*3+2];
+        }
+
+        rect = this.atlas.allocate(surface.mipTex.width, surface.mipTex.height, mip);
+        this.loadedTextures[surface.mipTex.name] = rect;
       }
-
-      let rect = this.atlas.allocate(surface.mipTex.width, surface.mipTex.height, mip);
       
       return {
         xy: [
@@ -164,6 +164,7 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
 
       this.gl.enableVertexAttribArray(this.bspProgram.attribute.position);
       this.gl.enableVertexAttribArray(this.bspProgram.attribute.uv);
+      this.gl.enableVertexAttribArray(this.bspProgram.attribute.texInfo);
 
       this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
       this.gl.clear( this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT );
@@ -183,14 +184,13 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
       for(var i=0; i < this.vbos.length; ++i) {
         var vbo = this.vbos[i];
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo.vbo);
-        this.gl.vertexAttribPointer(this.bspProgram.attribute.position, 3, this.gl.FLOAT, false, 5*4, 0);
-        this.gl.vertexAttribPointer(this.bspProgram.attribute.uv, 2, this.gl.FLOAT, false, 5*4, 3*4);
+        this.gl.vertexAttribPointer(this.bspProgram.attribute.position, 3, this.gl.FLOAT, false, 9*4, 0);
+        this.gl.vertexAttribPointer(this.bspProgram.attribute.uv, 2, this.gl.FLOAT, false, 9*4, 3*4);
+        this.gl.vertexAttribPointer(this.bspProgram.attribute.texInfo, 4, this.gl.FLOAT, false, 9*4, 5*4);
 
         this.gl.activeTexture(this.gl.TEXTURE0);
 			  this.gl.bindTexture(this.gl.TEXTURE_2D, this.atlas.texture);
 			  this.gl.uniform1i(this.bspProgram.uniform.texture, 0);
-        this.gl.uniform2fv(this.bspProgram.uniform.texSize, vbo.tex.size);
-        this.gl.uniform2fv(this.bspProgram.uniform.texOffset, vbo.tex.xy);
 
         this.gl.drawArrays(this.gl.TRIANGLES, 0, vbo.count);
       }

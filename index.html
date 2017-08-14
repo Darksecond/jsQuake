@@ -15,13 +15,11 @@ precision mediump float;
 
 uniform sampler2D texture;
 
-uniform vec2 texSize;
-uniform vec2 texOffset;
-
 varying vec2 vUv;
+varying vec4 vTexInfo;
 
 void main(void) {
-  gl_FragColor = texture2D(texture, texOffset + texSize * abs(fract(vUv.xy)));
+  gl_FragColor = texture2D(texture, vTexInfo.xy + vTexInfo.zw * abs(fract(vUv.xy)));
 }
 </script>
 <script id="bsp-vs" type="x-shader/x-vertex">
@@ -29,14 +27,17 @@ precision mediump float;
 
 attribute vec3 position;
 attribute vec2 uv;
+attribute vec4 texInfo;
 
 uniform mat4 viewMatrix;
 uniform mat4 perspectiveMatrix;
 
 varying vec2 vUv;
+varying vec4 vTexInfo;
 
 void main(void) {
   vUv = uv;
+  vTexInfo = texInfo;
   gl_Position = perspectiveMatrix * viewMatrix * vec4(position, 1.0);
 }
 </script>
