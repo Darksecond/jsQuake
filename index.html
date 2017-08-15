@@ -14,12 +14,16 @@
 precision mediump float;
 
 uniform sampler2D texture;
+uniform sampler2D lightmap;
 
 varying vec2 vUv;
 varying vec4 vTexInfo;
+varying vec4 vLightmapInfo;
 
 void main(void) {
-  gl_FragColor = texture2D(texture, vTexInfo.xy + vTexInfo.zw * abs(fract(vUv.xy)));
+  //TODO Figure out lightmaps, probably needs more stuff from the face
+  float lightmap = 1.0 - texture2D(lightmap, vLightmapInfo.xy + vLightmapInfo.zw * abs(fract(vUv.xy / 16.0))).r;
+  gl_FragColor = texture2D(texture, vTexInfo.xy + vTexInfo.zw * abs(fract(vUv.xy))) / lightmap;
 }
 </script>
 <script id="bsp-vs" type="x-shader/x-vertex">
@@ -28,16 +32,19 @@ precision mediump float;
 attribute vec3 position;
 attribute vec2 uv;
 attribute vec4 texInfo;
+attribute vec4 lightmapInfo;
 
 uniform mat4 viewMatrix;
 uniform mat4 perspectiveMatrix;
 
 varying vec2 vUv;
 varying vec4 vTexInfo;
+varying vec4 vLightmapInfo;
 
 void main(void) {
   vUv = uv;
   vTexInfo = texInfo;
+  vLightmapInfo = lightmapInfo;
   gl_Position = perspectiveMatrix * viewMatrix * vec4(position, 1.0);
 }
 </script>

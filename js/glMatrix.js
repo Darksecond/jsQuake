@@ -237,6 +237,18 @@ vec2.subtract = function(out, a, b) {
     return out;
 };
 
+vec2.ceil = function(out, a) {
+  out[0] = Math.ceil(a[0]);
+  out[1] = Math.ceil(a[1]);
+  return out;
+};
+
+vec2.floor = function(out, a) {
+  out[0] = Math.floor(a[0]);
+  out[1] = Math.floor(a[1]);
+  return out;
+};
+
 /**
  * Alias for {@link vec2.subtract}
  * @function

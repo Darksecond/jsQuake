@@ -372,7 +372,7 @@ define(['util', 'glMatrix'], function(Util, GLM){
                          data.getUint8 (i*20 + 14, true), //14-15
                          data.getUint8 (i*20 + 15, true), //15-16
                          ],
-          lightmap     : data.getInt32 (i*20 + 16, true), //16-20
+          lightmapId   : data.getInt32 (i*20 + 16, true), //16-20
         };
 
         // Reference surface directly
@@ -386,6 +386,10 @@ define(['util', 'glMatrix'], function(Util, GLM){
         var index;
         var edge;
         var vert0, vert1, vert2;
+        var extent = {
+          min: [Infinity, Infinity],
+          max: [-Infinity, -Infinity],
+        };
         var uv0, uv1, uv2;
 
         if(edgeIndiceNum < 3) {
@@ -404,6 +408,8 @@ define(['util', 'glMatrix'], function(Util, GLM){
               GLM.vec3.dot(vert0, face.surface.uAxis) + face.surface.uOffset,
               GLM.vec3.dot(vert0, face.surface.vAxis) + face.surface.vOffset,
               ];
+        GLM.vec2.min(extent.min, extent.min, uv0);
+        GLM.vec2.max(extent.max, extent.max, uv0);
 
         index = this.edgeIndices[edgeIndiceId + 1];
         edge = this.edges[Math.abs(index)];
@@ -416,6 +422,8 @@ define(['util', 'glMatrix'], function(Util, GLM){
               GLM.vec3.dot(vert1, face.surface.uAxis) + face.surface.uOffset,
               GLM.vec3.dot(vert1, face.surface.vAxis) + face.surface.vOffset,
               ];
+        GLM.vec2.min(extent.min, extent.min, uv1);
+        GLM.vec2.max(extent.max, extent.max, uv1);
 
         for(var e=2; e < edgeIndiceNum; ++e) {
           index = this.edgeIndices[edgeIndiceId + e];
@@ -429,6 +437,8 @@ define(['util', 'glMatrix'], function(Util, GLM){
                 GLM.vec3.dot(vert2, face.surface.uAxis) + face.surface.uOffset,
                 GLM.vec3.dot(vert2, face.surface.vAxis) + face.surface.vOffset,
                 ];
+          GLM.vec2.min(extent.min, extent.min, uv2);
+          GLM.vec2.max(extent.max, extent.max, uv2);
 
           face.vertices.push({pos: vert0, uv: uv0});
           face.vertices.push({pos: vert1, uv: uv1});
@@ -443,6 +453,25 @@ define(['util', 'glMatrix'], function(Util, GLM){
         // Reference plane directly
         var planeId = data.getUint16(i*20 +  0, true); // 0-2
         face.plane = this.planes[planeId];
+
+        // Setup lightmap data
+        if(face.lightmapId != -1) {
+          var lightmapExtent = {
+            min: [0,0],
+            max: [0,0],
+          }
+          GLM.vec2.div(lightmapExtent.min, extent.min, [16,16]);
+          GLM.vec2.div(lightmapExtent.max, extent.max, [16,16]);
+          GLM.vec2.ceil(lightmapExtent.max, lightmapExtent.max);
+          GLM.vec2.floor(lightmapExtent.min, lightmapExtent.min);
+          face.lightmap = {
+            width : (lightmapExtent.max[0] - lightmapExtent.min[0]) + 1,
+            height: (lightmapExtent.max[1] - lightmapExtent.min[1]) + 1,
+          };
+          var lightmapStart = this.header.lightmaps.offset + face.lightmapId;
+          var lightmapEnd = lightmapStart + face.lightmap.width * face.lightmap.height;
+          face.lightmap.data = this.raw.slice(lightmapStart, lightmapEnd);
+        }
 
         this.faces.push(face);
       }

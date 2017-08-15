@@ -71,6 +71,10 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
         this.bspProgram,
         "texInfo");
 
+      this.bspProgram.attribute.lightmapInfo = this.gl.getAttribLocation(
+        this.bspProgram,
+        "lightmapInfo");
+
       this.bspProgram.uniform.perspectiveMatrix = this.gl.getUniformLocation(
         this.bspProgram,
         "perspectiveMatrix");
@@ -82,6 +86,10 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
       this.bspProgram.uniform.texture = this.gl.getUniformLocation(
         this.bspProgram,
         "texture");
+
+      this.bspProgram.uniform.lightmap = this.gl.getUniformLocation(
+        this.bspProgram,
+        "lightmap");
     },
 
     //TODO Clean this up
@@ -94,7 +102,10 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
 
       for(var f=0; f < faces.length; ++f) {
         var face = faces[f];
+        if(face.lightmapId == -1)
+          continue; //TODO Don't skip, just don't render with lightmap
         var texture = this.loadTexture(face.surface.index);
+        var lightmap = this.loadLightmap(face.lightmap);
         for(var v=0; v < face.vertices.length; ++v) {
 
           verts.push(face.vertices[v].pos[0]);
@@ -108,6 +119,11 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
           verts.push(texture.xy[1]);
           verts.push(texture.size[0]);
           verts.push(texture.size[1]);
+
+          verts.push(lightmap.xy[0]);
+          verts.push(lightmap.xy[1]);
+          verts.push(lightmap.size[0]);
+          verts.push(lightmap.size[1]);
         }
       }
 
@@ -116,7 +132,7 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
       var vbo = this.gl.createBuffer();
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo);
       this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(verts), this.gl.STATIC_DRAW);
-      this.vbos.push({vbo: vbo, count: verts.length/9, tex: texture});
+      this.vbos.push({vbo: vbo, count: verts.length/13, tex: texture});
     },
 
     loadTexture: function(surfaceId) {
@@ -151,10 +167,36 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
       };
     },
 
+    loadLightmap: function(lightmap) {
+      var data = new Uint8Array(lightmap.data);
+      if(data.length < lightmap.width * lightmap.height) console.error('size incorrect', lightmap);
+      var rgb =  new Uint8Array(lightmap.width * lightmap.height * 3);
+      for(var i=0; i < data.length; ++i) {
+        var idx = data[i];
+        rgb[i*3+0] = idx;
+        rgb[i*3+1] = idx;
+        rgb[i*3+2] = idx;
+      }
+
+      var rect = this.lightmaps.allocate(lightmap.width, lightmap.height, rgb);
+
+      return {
+        xy: [
+          rect.xy[0]/this.lightmaps.width,
+          rect.xy[1]/this.lightmaps.height,
+        ],
+        size: [
+          rect.size[0]/this.lightmaps.width,
+          rect.size[1]/this.lightmaps.height
+        ],
+      };
+    },
+
     load: function(bsp, palette) {
       this.bsp = bsp;
       this.palette = new Uint8Array(palette);
       this.atlas = new Atlas(2048, 2048, this.gl);
+      this.lightmaps = new Atlas(2048, 2048, this.gl);
 
       this.loadVertices();
     },
@@ -165,6 +207,7 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
       this.gl.enableVertexAttribArray(this.bspProgram.attribute.position);
       this.gl.enableVertexAttribArray(this.bspProgram.attribute.uv);
       this.gl.enableVertexAttribArray(this.bspProgram.attribute.texInfo);
+      this.gl.enableVertexAttribArray(this.bspProgram.attribute.lightmapInfo);
 
       this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
       this.gl.clear( this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT );
@@ -184,13 +227,18 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
       for(var i=0; i < this.vbos.length; ++i) {
         var vbo = this.vbos[i];
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo.vbo);
-        this.gl.vertexAttribPointer(this.bspProgram.attribute.position, 3, this.gl.FLOAT, false, 9*4, 0);
-        this.gl.vertexAttribPointer(this.bspProgram.attribute.uv, 2, this.gl.FLOAT, false, 9*4, 3*4);
-        this.gl.vertexAttribPointer(this.bspProgram.attribute.texInfo, 4, this.gl.FLOAT, false, 9*4, 5*4);
+        this.gl.vertexAttribPointer(this.bspProgram.attribute.position, 3, this.gl.FLOAT, false, 13*4, 0);
+        this.gl.vertexAttribPointer(this.bspProgram.attribute.uv, 2, this.gl.FLOAT, false, 13*4, 3*4);
+        this.gl.vertexAttribPointer(this.bspProgram.attribute.texInfo, 4, this.gl.FLOAT, false, 13*4, 5*4);
+        this.gl.vertexAttribPointer(this.bspProgram.attribute.lightmapInfo, 4, this.gl.FLOAT, false, 13*4, 9*4);
 
         this.gl.activeTexture(this.gl.TEXTURE0);
 			  this.gl.bindTexture(this.gl.TEXTURE_2D, this.atlas.texture);
 			  this.gl.uniform1i(this.bspProgram.uniform.texture, 0);
+
+        this.gl.activeTexture(this.gl.TEXTURE1);
+			  this.gl.bindTexture(this.gl.TEXTURE_2D, this.lightmaps.texture);
+			  this.gl.uniform1i(this.bspProgram.uniform.lightmap, 1);
 
         this.gl.drawArrays(this.gl.TRIANGLES, 0, vbo.count);
       }
