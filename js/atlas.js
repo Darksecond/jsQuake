@@ -1,6 +1,7 @@
 define(function(){
   "use strict";
 
+  //TODO Add support for borders
   function Atlas(width, height, gl) {
     if (!(this instanceof Atlas)) {
       throw new TypeError("Atlas constructor cannot be called as a function.");
@@ -17,6 +18,7 @@ define(function(){
       width, height, 0, this.gl.RGB,
       this.gl.UNSIGNED_BYTE, new Uint8Array(width*height*3).fill(0));
 
+    //TODO Support different filtering methods
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT);
@@ -33,7 +35,7 @@ define(function(){
       for(var i=0; i < this.freeRects.length; i++) {
         var rect = this.freeRects[i];
         var score = (rect.size[0]-width) + (rect.size[1]-height);
-        if(score == 0) {
+        if(score == 0 && score < bestScore && rect.size[0] >= width && rect.size[1] >= height) {
           bestRect = rect;
           bestScore = score;
           break;

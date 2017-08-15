@@ -19,11 +19,16 @@ uniform sampler2D lightmap;
 varying vec2 vUv;
 varying vec4 vTexInfo;
 varying vec4 vLightmapInfo;
+varying float vBaseLight;
 
 void main(void) {
   //TODO Figure out lightmaps, probably needs more stuff from the face
-  float lightmap = 1.0 - texture2D(lightmap, vLightmapInfo.xy + vLightmapInfo.zw * abs(fract(vUv.xy / 16.0))).r;
-  gl_FragColor = texture2D(texture, vTexInfo.xy + vTexInfo.zw * abs(fract(vUv.xy))) / lightmap;
+  //  We need at least light type and time
+  //TODO The following light algorithm is very likely incorrect
+  //  But at least we know gl_fragColor.w should always be 1.0
+  float lightmap = texture2D(lightmap, vLightmapInfo.xy + vLightmapInfo.zw * abs(fract(vUv.xy / 16.0))).r;
+  vec4 texture = texture2D(texture, vTexInfo.xy + vTexInfo.zw * abs(fract(vUv.xy)));
+  gl_FragColor = vec4(vec3(texture) * (1.0 - vBaseLight - lightmap), 1.0);
 }
 </script>
 <script id="bsp-vs" type="x-shader/x-vertex">
@@ -33,6 +38,7 @@ attribute vec3 position;
 attribute vec2 uv;
 attribute vec4 texInfo;
 attribute vec4 lightmapInfo;
+attribute float baseLight;
 
 uniform mat4 viewMatrix;
 uniform mat4 perspectiveMatrix;
@@ -40,11 +46,13 @@ uniform mat4 perspectiveMatrix;
 varying vec2 vUv;
 varying vec4 vTexInfo;
 varying vec4 vLightmapInfo;
+varying float vBaseLight;
 
 void main(void) {
   vUv = uv;
   vTexInfo = texInfo;
   vLightmapInfo = lightmapInfo;
+  vBaseLight = baseLight;
   gl_Position = perspectiveMatrix * viewMatrix * vec4(position, 1.0);
 }
 </script>
