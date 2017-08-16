@@ -129,7 +129,7 @@ define(['glMatrix', 'atlas'], function(GLM, Atlas) {
           verts.push(lightmap.size[0]);
           verts.push(lightmap.size[1]);
 
-          verts.push(face.baseLight);
+          verts.push(face.baselight/255);
         }
       }
 
